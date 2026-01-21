@@ -1,0 +1,178 @@
+import httpx
+import time
+import base64
+import re
+from utils.helpers import get_params, base64_to_bytes, generar_session_id
+import json
+
+
+async def photo_upload(cookies: dict, base64_data: str):
+    async with httpx.AsyncClient(cookies=cookies) as client:
+        data = await get_params(client)
+        binary = await base64_to_bytes(base64_data)
+        # Equivalente a FormData en JS
+        form_data = {
+            "source": (None, "8"),
+            "profile_id": (None, data["av"]),
+            "waterfallxapp": (None, "comet"),
+            "farr": ("imagen.jpeg", binary, "image/jpeg"),
+            "upload_id": (None, "jsc_c_8"),
+        }
+
+        params = {
+            "av": data["av"],
+            "__user": data["av"],
+            "__a": "1",
+            "fb_dtsg": data["fb_dtsg"],
+            "lsd": data["lsd"],
+            "__spin_r": data["__spin_r"],
+            "__spin_b": "trunk",
+            "__spin_t": data["__spin_t"],
+        }
+
+        response = await client.post(
+            "https://upload.facebook.com/ajax/react_composer/attachments/photo/upload",
+            params=params,
+            files=form_data,
+        )
+
+        text = response.text
+        match = re.search(r'"photoID":"(.*?)"', text)
+        if match:
+            photo_id = match.group(1)
+            return {"status_code": 200, "photo_id": photo_id, "client": client}
+        else:
+            return {
+                "status_code": 400,
+                "mensaje": "❌ No se encontró photoID.\nRespuesta:",
+                "respuesta": text,
+            }
+
+
+####
+async def posting_post(client: httpx.AsyncClient, photo_id: str, title: str):
+    data = await get_params(client)
+    session_id = generar_session_id()
+    timestamp = int(time.time() * 1000)
+    # Preparar el payload para la publicación
+    payload = {
+        "av": data["av"],
+        "fb_dtsg": data["fb_dtsg"],
+        "lsd": data["lsd"],
+        "__spin_r": data["__spin_r"],
+        "__spin_b": "trunk",
+        "__spin_t": data["__spin_t"],
+        "variables": f'{{"input":{{"composer_entry_point":"inline_composer","composer_source_surface":"timeline","idempotence_token":"{session_id}_FEED","source":"WWW","attachments":[{{"photo":{{"id":"{photo_id}"}}}}],"audience":{{"privacy":{{"allow":[],"base_state":"EVERYONE","deny":[],"tag_expansion_state":"UNSPECIFIED"}}}},"message":{{"ranges":[],"text":"{title}"}},"with_tags_ids":null,"inline_activities":[],"text_format_preset_id":"0","publishing_flow":{{"supported_flows":["ASYNC_SILENT","ASYNC_NOTIF","FALLBACK"]}},"logging":{{"composer_session_id":"{session_id}"}},"navigation_data":{{"attribution_id_v2":"ProfileCometTimelineListViewRoot.react,comet.profile.timeline.list,via_cold_start,{timestamp},532559,{timestamp},,"}},"tracking":[null],"event_share_metadata":{{"surface":"timeline"}},"actor_id":"{data["av"]}","client_mutation_id":"2"}},"feedLocation":"TIMELINE","feedbackSource":0,"focusCommentID":null,"gridMediaWidth":230,"groupID":null,"scale":1,"privacySelectorRenderLocation":"COMET_STREAM","checkPhotosToReelsUpsellEligibility":true,"renderLocation":"timeline","useDefaultActor":false,"inviteShortLinkKey":null,"isFeed":false,"isFundraiser":false,"isFunFactPost":false,"isGroup":false,"isEvent":false,"isTimeline":true,"isSocialLearning":false,"isPageNewsFeed":false,"isProfileReviews":false,"isWorkSharedDraft":false,"hashtag":null,"canUserManageOffers":false,"__relay_internal__pv__CometUFIShareActionMigrationrelayprovider":true,"__relay_internal__pv__GHLShouldChangeSponsoredDataFieldNamerelayprovider":true,"__relay_internal__pv__GHLShouldChangeAdIdFieldNamerelayprovider":true,"__relay_internal__pv__CometUFI_dedicated_comment_routable_dialog_gkrelayprovider":false,"__relay_internal__pv__IsWorkUserrelayprovider":false,"__relay_internal__pv__CometUFIReactionsEnableShortNamerelayprovider":false,"__relay_internal__pv__FBReels_deprecate_short_form_video_context_gkrelayprovider":true,"__relay_internal__pv__CometFeedStoryDynamicResolutionPhotoAttachmentRenderer_experimentWidthrelayprovider":500,"__relay_internal__pv__CometImmersivePhotoCanUserDisable3DMotionrelayprovider":false,"__relay_internal__pv__WorkCometIsEmployeeGKProviderrelayprovider":false,"__relay_internal__pv__IsMergQAPollsrelayprovider":false,"__relay_internal__pv__FBReelsMediaFooter_comet_enable_reels_ads_gkrelayprovider":false,"__relay_internal__pv__StoriesArmadilloReplyEnabledrelayprovider":false,"__relay_internal__pv__FBReelsIFUTileContent_reelsIFUPlayOnHoverrelayprovider":false,"__relay_internal__pv__GHLShouldChangeSponsoredAuctionDistanceFieldNamerelayprovider":false}}',
+        "server_timestamps": "true",
+        "doc_id": "9908905722506681",
+    }
+    response = await client.post("https://www.facebook.com/api/graphql/", data=payload)
+    if "story_create" in response.text and "post_id" in response.text:
+        response = response.json()
+        post_id = response["data"]["story_create"]["post_id"]
+        feedback = "feedback:" + post_id
+        feedback_id = base64.b64encode(feedback.encode("utf-8")).decode("utf-8")
+        return feedback_id
+    else:
+        print("❌ Error en la publicación:", response.text)
+
+
+####
+async def feedback_start_typing(client: httpx.AsyncClient, feedback_id: str):
+    data = await get_params(client)
+    session_id = generar_session_id()
+    payload = {
+        "av": data["av"],
+        "__aaid": "0",
+        "__user": data["av"],
+        "__a": "1",
+        "__req": "1",
+        "__hs": data["__hs"],
+        "dpr": "1",
+        "__ccg": "EXCELLENT",
+        "__rev": data["__rev"],
+        "__s": data["__s"],
+        "__hsi": data["__hsi"],
+        "__dyn": data["__dyn"],
+        "__csr": data["__csr"],
+        "__hsdp": data["__hsdp"],
+        "__hblp": data["__hblp"],
+        "__comet_req": data["__comet_req"],
+        "fb_dtsg": data["fb_dtsg"],
+        "jazoest": data["jazoest"],
+        "lsd": data["lsd"],
+        "__spin_r": data["__spin_r"],
+        "__spin_b": "trunk",
+        "__spin_t": data["__spin_t"],
+        "__crn": "comet.fbweb.CometProfileTimelineListViewRoute",
+        "fb_api_caller_class": "RelayModern",
+        "fb_api_req_friendly_name": "CometUFILiveTypingBroadcastMutation_StartMutation",
+        "variables": f'{{"input":{{"feedback_id":"{feedback_id}","session_id":"{session_id}","actor_id":"{data["av"]}","client_mutation_id":"1"}}}}',
+        "server_timestamps": "true",
+        "doc_id": "9432643450167108",
+    }
+
+    await client.post("https://www.facebook.com/api/graphql/", data=payload)
+
+
+####
+async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: str):
+    post_id = base64.b64decode(feedback_id).decode("utf-8").replace("feedback:", "")
+    data = await get_params(client)
+    session_id = generar_session_id()
+    timestamp = int(time.time() * 1000)
+    print('texto recibido', comment)
+    # Procesamos el texto que viene de JSON.stringify()
+    try:
+        # Primero intentamos decodificar el JSON
+        comment = json.loads(comment)
+        # Si el texto tiene escapes, los removemos
+        if isinstance(comment, str):
+            comment = comment.encode('utf-8').decode('unicode_escape')
+    except:
+        # Si falla el JSON, asumimos que es texto plano
+        pass
+
+    comment = comment.replace('\n', '\\n')
+    print('texto procesado', comment)
+    payload = {
+        "av": data["av"],
+        "__aaid": "0",
+        "__user": data["av"],
+        "__a": "1",
+        "__req": "1",
+        "__hs": data["__hs"],
+        "dpr": "1",
+        "__ccg": "EXCELLENT",
+        "__rev": data["__rev"],
+        "__s": data["__s"],
+        "__hsi": data["__hsi"],
+        "__dyn": data["__dyn"],
+        "__csr": data["__csr"],
+        "__hsdp": data["__hsdp"],
+        "__hblp": data["__hblp"],
+        "__comet_req": data["__comet_req"],
+        "fb_dtsg": data["fb_dtsg"],
+        "jazoest": data["jazoest"],
+        "lsd": data["lsd"],
+        "__spin_r": data["__spin_r"],
+        "__spin_b": "trunk",
+        "__spin_t": data["__spin_t"],
+        "__crn": "comet.fbweb.CometProfileTimelineListViewRoute",
+        "fb_api_caller_class": "RelayModern",
+        "fb_api_req_friendly_name": "useCometUFICreateCommentMutation",
+        "variables": f"""{{"feedLocation":"TIMELINE","feedbackSource":0,"groupID":null,"input":{{"client_mutation_id":"1","actor_id":"{data['av']}","attachments":null,"feedback_id":"{feedback_id}","formatting_style":null,"message":{{"ranges":[],"text":"{comment}"}},"attribution_id_v2":"ProfileCometTimelineListViewRoot.react,comet.profile.timeline.list,via_cold_start,{timestamp},850307,190055527696468,,","vod_video_timestamp":null,"is_tracking_encrypted":true,"tracking":["{data['tracking_hash']}","{{\\"assistant_caller\\":\\"comet_above_composer\\",\\"conversation_guide_session_id\\":null,\\"conversation_guide_shown\\":null}}"],"feedback_source":"PROFILE","idempotence_token":"client:{session_id}","session_id":"{session_id}"}},"inviteShortLinkKey":null,"renderLocation":null,"scale":1,"useDefaultActor":false,"focusCommentID":null,"__relay_internal__pv__IsWorkUserrelayprovider":false}}""",
+        "server_timestamps": "true",
+        "doc_id": "9978194542273556",
+    }
+
+    response = await client.post("https://www.facebook.com/api/graphql/", data=payload)
+    
+    if "feedback" in response.text and "associated_group" in response.text:
+        return {"status_code": 200, "data": {"post_id": post_id}, "mensaje": "Comentario publicado exitosamente."}
+    else:
+        return {
+            "status_code": 400,
+            "mensaje": "❌ Error al publicar el comentario.\nRespuesta:",
+            "respuesta": response.text,
+        }
