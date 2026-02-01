@@ -1,1 +1,7 @@
 facebook logic.tar
+__pycache__/
+*.pyc
+checkpoint_debug.html
+cookie_events_log.json
+facebook_cookies.json
+facebook_*.html

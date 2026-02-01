@@ -1,15 +1,18 @@
 import httpx
 import json
 import re
-from typing import List
+import traceback
+from typing import List, Optional, Dict, Any
 from models.request_models import Cookie
 from services.facebook_steps import (
+    fb_home,
+    photo_upload,
     get_params,
     posting_post,
-    base64_to_bytes,
-    feedback_start_typing,
     posting_comment,
+    feedback_start_typing,
 )
+from utils.helpers import get_headers
 
 
 class FacebookService:
@@ -25,50 +28,93 @@ class FacebookService:
         if session["status_code"] != 200:
             return session
 
-        async with httpx.AsyncClient(cookies=cookies_dict) as client:
-            data = await get_params(client)
-            binary = await base64_to_bytes(image_base64)
-            # Subir imagen
-            response = await client.post(
-                "https://upload.facebook.com/ajax/react_composer/attachments/photo/upload",
-                params={
-                    "av": data["av"],
-                    "__user": data["av"],
-                    "__a": "1",
-                    "fb_dtsg": data["fb_dtsg"],
-                    "lsd": data["lsd"],
-                    "__spin_r": data["__spin_r"],
-                    "__spin_b": "trunk",
-                    "__spin_t": data["__spin_t"],
-                },
-                files={
-                    "source": (None, "8"),
-                    "profile_id": (None, data["av"]),
-                    "waterfallxapp": (None, "comet"),
-                    "farr": ("imagen.jpeg", binary, "image/jpeg"),
-                    "upload_id": (None, "jsc_c_8"),
-                },
+        client = await fb_home(cookies_dict)
+
+        try:
+            # 1. Subir imagen (Si aplica)
+            upload_result = await FacebookService._upload_image_if_needed(
+                client, image_base64
             )
 
-            text = response.text
-            match = re.search(r'"photoID":"(.*?)"', text)
-            #
-            if match:
-                photo_id = match.group(1)
-            else:
+            # Si hubo error al subir imagen, retornamos error inmediatamente
+            if isinstance(upload_result, dict) and upload_result["status_code"] != 200:
+                return upload_result
+
+            photo_id = upload_result
+
+            # 2. Publicar Post (Texto o Texto+Imagen)
+            feedback_id = await posting_post(client, photo_id, title)
+            if feedback_id is None:
                 return {
                     "status_code": 400,
-                    "mensaje": "❌ No se encontró photoID.\nRespuesta:",
-                    "respuesta": text,
+                    "mensaje": "Error al publicar el post",
                 }
 
-            feedback_id = await posting_post(client, photo_id, title)
-            await client.get("https://www.facebook.com/")
+            # 3. Publicar Comentario (Si aplica)
+            comment_result = await FacebookService._publish_comment_if_needed(
+                client, feedback_id, comment
+            )
+
+            # Si publicamos comentario, retornamos ese resultado final
+            # Si no hubo comentario, retornamos éxito del post base
+            if comment_result:
+                return comment_result
+
+            return {
+                "status_code": 200,
+                "mensaje": "Post publicado exitosamente (sin comentario)",
+                "data": {"feedback_id": feedback_id},
+            }
+
+        finally:
+            await client.aclose()
+
+    @staticmethod
+    async def _upload_image_if_needed(
+        client: httpx.AsyncClient, image_base64: str
+    ) -> Optional[str] | Dict[str, Any]:
+        """
+        Retorna:
+        - None: Si no hay imagen para subir.
+        - photo_id (str): Si sube exitosamente.
+        - dict: Si ocurre un error.
+        """
+        if not image_base64:
+            return None
+
+        resultado_upload = await photo_upload(client, image_base64)
+        if resultado_upload["status_code"] != 200:
+            return resultado_upload
+
+        return resultado_upload["photo_id"]
+
+    @staticmethod
+    async def _publish_comment_if_needed(
+        client: httpx.AsyncClient, feedback_id: str, comment: str
+    ):
+        """
+        Retorna:
+        - None: Si no hay comentario.
+        - dict: Resultado de la publicación del comentario.
+        """
+        if not comment:
+            return None
+
+        await client.get("https://www.facebook.com/")
+
+        # Restaurado: Llamada explícita a feedback_start_typing
+        await feedback_start_typing(client, feedback_id)
+
+        final = await posting_comment(client, feedback_id, comment)
+
+        # Lógica de reintento
+        if final["status_code"] != 200:
             await feedback_start_typing(client, feedback_id)
             final = await posting_comment(client, feedback_id, comment)
 
         return final
 
+    @staticmethod
     async def get_pages(cookies: List[Cookie]):
         cookies_dict = {c.name: c.value for c in cookies}
 
@@ -77,7 +123,9 @@ class FacebookService:
         if session["status_code"] != 200:
             return session
 
-        async with httpx.AsyncClient(cookies=cookies_dict) as client:
+        async with httpx.AsyncClient(
+            cookies=cookies_dict, headers=get_headers(), follow_redirects=True
+        ) as client:
             data = await get_params(client)
             payload = {
                 "av": data["av"],
@@ -127,10 +175,13 @@ class FacebookService:
                     "resultado": json.dumps(resultados),
                 }
 
+    @staticmethod
     async def get_session(cookies: List[Cookie]):
         cookies_dict = {c.name: c.value for c in cookies}
         try:
-            async with httpx.AsyncClient(cookies=cookies_dict) as client:
+            async with httpx.AsyncClient(
+                cookies=cookies_dict, headers=get_headers(), follow_redirects=True
+            ) as client:
                 response = await client.get("https://www.facebook.com/")
                 html = response.text
                 match_actor = re.search(r'"actorId":"(.*?)"', html)
@@ -141,21 +192,23 @@ class FacebookService:
                     userName = match_name.group(1)
                     return {
                         "status_code": 200,
-                        "mensaje": "✅ Sesión activa",
+                        "mensaje": "Sesión activa",
                         "c_user": active,
                         "name": userName,
                     }
                 else:
                     return {
                         "status_code": 400,
-                        "mensaje": "❌ No se encontró actorId o name en el HTML",
+                        "mensaje": "No se encontró actorId o name en el HTML",
+                        "resultado": "Sesión caducada o no valida",
                         "c_user": None,
                         "name": None,
                     }
         except Exception as e:
+            print(traceback.format_exc())
             return {
                 "status_code": 500,
-                "mensaje": f"❌ Error en get_session: {str(e)}",
+                "mensaje": f"Error en get_session: {str(e)}",
                 "c_user": None,
                 "name": None,
             }

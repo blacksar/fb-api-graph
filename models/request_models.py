@@ -10,9 +10,9 @@ class Cookie(BaseModel):
 class PublishRequest(BaseModel):
     id: str
     cookies: List[Cookie]
-    title: str
-    comment: str
-    image_base64: str
+    title: str| None = None
+    comment: str | None = None
+    image_base64: str | None = None
 
 
 class GetPagesRequest(BaseModel):
@@ -21,3 +21,9 @@ class GetPagesRequest(BaseModel):
 
 class GetSessionRequest(BaseModel):
     cookies: List[Cookie]
+
+
+class LoginRequest(BaseModel):
+    email: str
+    encpass: str  # manual.py: valor completo "#PWD_BROWSER:0:...:..."
+    wait_2fa_seconds: int | None = 60

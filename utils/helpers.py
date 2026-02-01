@@ -42,33 +42,43 @@ async def get_params(client: httpx.AsyncClient):
 
         return t
 
-    #
+    try:
+        return {
+            "av": re.search(r'"actorId":"(.*?)"', html).group(1),
+            "accountId": re.search(r'"accountId":"(.*?)"', html).group(1),
+            "__user": re.search(r'"actorId":"(.*?)"', html).group(1),
+            "__a": "1",
+            "__req": "1",
+            "__hs": re.search(r'"haste_session":"(.*?)"', html).group(1),
+            "dpr": 1,
+            "__ccg": "EXCELLENT",
+            "__rev": re.search(r'"client_revision":(.*?),', html).group(1),
+            "__s": f"{h(6, 'mix')}:{h(6, 'mix')}:{h(6, 'mix')}",
+            "__hsi": re.search(r'"hsi":"(.*?)"', html).group(1),
+            "__dyn": h(376, "mix"),
+            "__csr": h(376, "mix"),
+            "__hsdp": h(813, "mix"),
+            "__hblp": h(578, "mix"),
+            "tracking_hash": "AZW" + h(213, "mix"),
+            "__comet_req": re.search(r'"comet_env":(\d+)', html).group(1),
+            "fb_dtsg": re.search(
+                r'\["DTSGInitialData",\[\],\{"token":"(.*?)"', html
+            ).group(1),
+            "async_get_token": re.search(r'"async_get_token":"(.*?)"', html).group(1),
+            "jazoest": re.search(r'\["SprinkleConfig",\[\],\{.*?\},(\d+)]', html).group(
+                1
+            ),
+            "lsd": re.search(r'\["LSD",\[\],\{"token":"(.*?)"', html).group(1),
+            "__spin_r": re.search(r'"__spin_r":(.*?),', html).group(1),
+            "__spin_b": "trunk",
+            "__spin_t": re.search(r'"__spin_t":(.*?),', html).group(1),
+            "__aaid": "9432643450167108",
+        }
+    except Exception:
+        raise
+
+
+def get_headers():
     return {
-        "av": re.search(r'"actorId":"(.*?)"', html).group(1),
-        "accountId": re.search(r'"accountId":"(.*?)"', html).group(1),
-        "__user": re.search(r'"actorId":"(.*?)"', html).group(1),
-        "__a": "1",
-        "__req": "1",
-        "__hs": re.search(r'"haste_session":"(.*?)"', html).group(1),
-        "dpr": 1,
-        "__ccg": "EXCELLENT",
-        "__rev": re.search(r'"client_revision":(.*?),', html).group(1),
-        "__s": f"{h(6, 'mix')}:{h(6, 'mix')}:{h(6, 'mix')}",
-        "__hsi": re.search(r'"hsi":"(.*?)"', html).group(1),
-        "__dyn": h(376, "mix"),
-        "__csr": h(376, "mix"),
-        "__hsdp": h(813, "mix"),
-        "__hblp": h(578, "mix"),
-        "tracking_hash": "AZW" + h(213, "mix"),
-        "__comet_req": re.search(r'"comet_env":(\d+)', html).group(1),
-        "fb_dtsg": re.search(r'\["DTSGInitialData",\[\],\{"token":"(.*?)"', html).group(
-            1
-        ),
-        "async_get_token": re.search(r'"async_get_token":"(.*?)"', html).group(1),
-        "jazoest": re.search(r'\["SprinkleConfig",\[\],\{.*?\},(\d+)]', html).group(1),
-        "lsd": re.search(r'\["LSD",\[\],\{"token":"(.*?)"', html).group(1),
-        "__spin_r": re.search(r'"__spin_r":(.*?),', html).group(1),
-        "__spin_b": "trunk",
-        "__spin_t": re.search(r'"__spin_t":(.*?),', html).group(1),
-        "__aaid": "9432643450167108",
+        "Accept-Language": "es-ES,es;q=0.9",
     }

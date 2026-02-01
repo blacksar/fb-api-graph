@@ -1,16 +1,18 @@
-FROM python:3.11
+# Imagen con Python + dependencias del sistema para Playwright (sin navegadores)
+FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
 
-# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos
-COPY . .
-
-# Instalar dependencias
+# 1. Instalar dependencias Python (incluye el paquete playwright)
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exponer el puerto
+# 2. Instalar el navegador Chromium (explícito al desplegar)
+RUN playwright install chromium
+
+# Código de la aplicación
+COPY . .
+
 EXPOSE 8000
 
-# Comando de inicio
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
