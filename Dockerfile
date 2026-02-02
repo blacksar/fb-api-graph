@@ -1,6 +1,5 @@
-# Imagen con Python + dependencias del sistema para Playwright (sin navegadores)
-FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
-
+FROM python:3.11
+    
 WORKDIR /app
 
 # 1. Instalar dependencias Python (incluye el paquete playwright)
@@ -16,3 +15,4 @@ COPY . .
 EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
