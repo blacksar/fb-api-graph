@@ -2,4 +2,5 @@
 fastapi
 uvicorn
 httpx
+httpx[http2]
 playwright
