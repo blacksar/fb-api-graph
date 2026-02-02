@@ -20,10 +20,11 @@ Base: FastAPI. Ejecución: Docker. Arranque: `docker build -t api-facebook . && 
 ```json
 {
   "email": "string (obligatorio)",
-  "encpass": "string (obligatorio, ej. #PWD_BROWSER:0:timestamp:contraseña_cifrada)",
+  "pass": "string (obligatorio; parte variable; la API construye encpass = '#PWD_BROWSER:0:1628896342:' + pass)",
   "wait_2fa_seconds": 60
 }
 ```
+- `pass`: solo la parte variable. La API concatena internamente `"#PWD_BROWSER:0:1628896342:" + pass`.
 - `wait_2fa_seconds`: opcional; segundos máximos esperando aprobación 2FA (mínimo efectivo 60).
 
 **Respuestas:**

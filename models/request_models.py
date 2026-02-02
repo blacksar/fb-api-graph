@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
 
 
@@ -25,5 +25,5 @@ class GetSessionRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: str
-    encpass: str  # manual.py: valor completo "#PWD_BROWSER:0:...:..."
+    pass_: str = Field(alias="pass", description="Parte variable; la API construye encpass = '#PWD_BROWSER:0:1628896342:' + pass")
     wait_2fa_seconds: int | None = 60

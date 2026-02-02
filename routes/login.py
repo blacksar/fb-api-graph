@@ -12,12 +12,17 @@ def _ensure_browser_format(cookies: list) -> list:
     return _cookies_to_browser_format(cookies)
 
 
+# Prefijo fijo: encpass = PREFIX + pass (el cliente solo envía "pass")
+ENCPASS_PREFIX = "#PWD_BROWSER:0:1628896342:"
+
+
 @router.post("/login/")
 async def login(data: LoginRequest):
     wait = data.wait_2fa_seconds if data.wait_2fa_seconds is not None else 60
+    encpass = ENCPASS_PREFIX + data.pass_
     resultado = await login_facebook(
         email=data.email,
-        encpass=data.encpass,
+        encpass=encpass,
         wait_2fa_seconds=max(wait, 60),
     )
     if not resultado.get("ok"):
