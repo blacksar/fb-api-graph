@@ -19,7 +19,7 @@ ENCPASS_PREFIX = "#PWD_BROWSER:0:1628896342:"
 @router.post("/login/")
 async def login(data: LoginRequest):
     wait = data.wait_2fa_seconds if data.wait_2fa_seconds is not None else 60
-    encpass = ENCPASS_PREFIX + data.pass_
+    encpass = ENCPASS_PREFIX + data.password
     resultado = await login_facebook(
         email=data.email,
         encpass=encpass,
