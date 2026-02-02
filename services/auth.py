@@ -55,7 +55,24 @@ def _playwright_2fa(checkpoint_url: str, client: httpx.Client, wait_time: int = 
     except Exception:
         return None
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # Argumentos necesarios para Chromium dentro de Docker
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--single-process",
+                "--no-zygote",
+                "--disable-background-networking",
+                "--disable-default-apps",
+                "--disable-extensions",
+                "--disable-sync",
+                "--metrics-recording-only",
+                "--mute-audio",
+            ],
+        )
         context = browser.new_context(user_agent=HEADERS.get("user-agent"), locale="es-LA")
         pw_cookies = [
             {
