@@ -1,5 +1,5 @@
 # API Facebook (login, sesión, páginas, publicar)
-fastapi>=0.100.0
-uvicorn>=0.20.0
-httpx[http2]>=0.24.0
-playwright>=1.40.0
+fastapi
+uvicorn
+httpx
+playwright
