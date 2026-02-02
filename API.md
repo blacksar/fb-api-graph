@@ -31,7 +31,7 @@ Base: FastAPI. Ejecución: Docker. Arranque: `docker build -t api-facebook . && 
 
 | Código | Cuándo | Body |
 |--------|--------|------|
-| **200** | Login correcto (sesión iniciada, cookie `c_user` presente). | `{ "status": "ok", "cookies": [ {...}, ... ] }` — `cookies` en formato navegador (domain, expirationDate, hostOnly, httpOnly, name, path, sameSite, secure, session, storeId, value). |
+| **200** | Login correcto (sesión iniciada, cookie `c_user` presente). | `{ "status": "ok", "cookies": [ {...}, ... ], "session": { "name": "Nombre del usuario", "c_user": "100027565757737" } }` — `cookies` en formato navegador; `session` con el nombre de la sesión y el id (`c_user`). |
 | **401** | Credenciales incorrectas: la URL tras el POST no es two_step_verification/checkpoint. | `{ "detail": "Email o contraseña incorrectos." }` |
 | **408** | Tiempo agotado esperando aprobación 2FA. | `{ "detail": "Tiempo agotado esperando 2FA." }` |
 | **422** | Validación fallida (falta `email`, `encpass` o tipos incorrectos). | `{ "detail": [ { "loc": ["body", "campo"], "msg": "...", "type": "..." } ] }` |

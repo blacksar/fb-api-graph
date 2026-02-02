@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from models.request_models import LoginRequest
+from models.request_models import Cookie, LoginRequest
 from services.auth import login_facebook, _cookies_to_browser_format
+from services.facebook import FacebookService
 
 router = APIRouter()
 
@@ -31,4 +32,11 @@ async def login(data: LoginRequest):
             detail=resultado.get("mensaje", "Error en login"),
         )
     cookies = _ensure_browser_format(resultado.get("cookies", []))
-    return {"status": "ok", "cookies": cookies}
+    # Obtener nombre de la sesión (c_user y name) con las cookies recién obtenidas
+    cookies_for_session = [Cookie(name=c["name"], value=c["value"]) for c in cookies]
+    session_info = await FacebookService.get_session(cookies_for_session)
+    session = {
+        "name": session_info.get("name"),
+        "c_user": session_info.get("c_user"),
+    }
+    return {"status": "ok", "cookies": cookies, "session": session}
