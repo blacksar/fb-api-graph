@@ -15,7 +15,6 @@ async def fb_home(cookies: dict):
     await client.get("https://www.facebook.com/")
     return client
 
-
 ####
 async def photo_upload(client: httpx.AsyncClient, base64_data: str):
     data = await get_params(client)
@@ -58,7 +57,6 @@ async def photo_upload(client: httpx.AsyncClient, base64_data: str):
             "respuesta": text,
         }
 
-
 ####
 async def posting_post(client: httpx.AsyncClient, photo_id: str, title: str):
     data = await get_params(client)
@@ -84,7 +82,7 @@ async def posting_post(client: httpx.AsyncClient, photo_id: str, title: str):
                     "tag_expansion_state": "UNSPECIFIED",
                 }
             },
-            "message": {"ranges": [], "text": title},
+            "message": {"ranges": [], "text": {json.dumps(title)}},
             "with_tags_ids": None,
             "inline_activities": [],
             "text_format_preset_id": "0",
@@ -211,7 +209,6 @@ async def feedback_start_typing(client: httpx.AsyncClient, feedback_id: str):
 
     await client.post("https://www.facebook.com/api/graphql/", data=payload)
 
-
 ####
 async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: str):
     post_id = base64.b64decode(feedback_id).decode("utf-8").replace("feedback:", "")
@@ -219,17 +216,17 @@ async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: 
     session_id = generar_session_id()
     timestamp = int(time.time() * 1000)
     # Procesamos el texto que viene de JSON.stringify()
-    try:
-        # Primero intentamos decodificar el JSON
-        comment = json.loads(comment)
-        # Si el texto tiene escapes, los removemos
-        if isinstance(comment, str):
-            comment = comment.encode("utf-8").decode("unicode_escape")
-    except:
-        # Si falla el JSON, asumimos que es texto plano
-        pass
+    ##try:
+    ##    # Primero intentamos decodificar el JSON
+    ##    comment = json.loads(comment)
+    ##    # Si el texto tiene escapes, los removemos
+    ##    if isinstance(comment, str):
+    ##        comment = comment.encode("utf-8").decode("unicode_escape")
+    ##except:
+    ##    # Si falla el JSON, asumimos que es texto plano
+    ##    pass
 
-    comment = comment.replace("\n", "\\n")
+    #comment = comment.replace("\n", "\\n")
     payload = {
         "av": data["av"],
         "__aaid": "0",
@@ -256,7 +253,7 @@ async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: 
         "__crn": "comet.fbweb.CometProfileTimelineListViewRoute",
         "fb_api_caller_class": "RelayModern",
         "fb_api_req_friendly_name": "useCometUFICreateCommentMutation",
-        "variables": f"""{{"feedLocation":"TIMELINE","feedbackSource":0,"groupID":null,"input":{{"client_mutation_id":"1","actor_id":"{data['av']}","attachments":null,"feedback_id":"{feedback_id}","formatting_style":null,"message":{{"ranges":[],"text":"{comment}"}},"attribution_id_v2":"ProfileCometTimelineListViewRoot.react,comet.profile.timeline.list,via_cold_start,{timestamp},850307,190055527696468,,","vod_video_timestamp":null,"is_tracking_encrypted":true,"tracking":["{data['tracking_hash']}","{{\\"assistant_caller\\":\\"comet_above_composer\\",\\"conversation_guide_session_id\\":null,\\"conversation_guide_shown\\":null}}"],"feedback_source":"PROFILE","idempotence_token":"client:{session_id}","session_id":"{session_id}"}},"inviteShortLinkKey":null,"renderLocation":null,"scale":1,"useDefaultActor":false,"focusCommentID":null,"__relay_internal__pv__IsWorkUserrelayprovider":false}}""",
+        "variables": f"""{{"feedLocation":"TIMELINE","feedbackSource":0,"groupID":null,"input":{{"client_mutation_id":"1","actor_id":"{data['av']}","attachments":null,"feedback_id":"{feedback_id}","formatting_style":null,"message":{{"ranges":[],"text":{json.dumps(comment)}}},"attribution_id_v2":"ProfileCometTimelineListViewRoot.react,comet.profile.timeline.list,via_cold_start,{timestamp},850307,190055527696468,,","vod_video_timestamp":null,"is_tracking_encrypted":true,"tracking":["{data['tracking_hash']}","{{\\"assistant_caller\\":\\"comet_above_composer\\",\\"conversation_guide_session_id\\":null,\\"conversation_guide_shown\\":null}}"],"feedback_source":"PROFILE","idempotence_token":"client:{session_id}","session_id":"{session_id}"}},"inviteShortLinkKey":null,"renderLocation":null,"scale":1,"useDefaultActor":false,"focusCommentID":null,"__relay_internal__pv__IsWorkUserrelayprovider":false}}""",
         "server_timestamps": "true",
         "doc_id": "9978194542273556",
     }
@@ -272,6 +269,6 @@ async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: 
     else:
         return {
             "status_code": 400,
-            "mensaje": "Error al publicar el comentario. Respuesta:",
+            "mensaje": "Error al publicar el comentario. Respuesta:"+ response.text,
             "respuesta": response.text,
         }
