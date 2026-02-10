@@ -15,6 +15,7 @@ async def fb_home(cookies: dict):
     await client.get("https://www.facebook.com/")
     return client
 
+
 ####
 async def photo_upload(client: httpx.AsyncClient, base64_data: str):
     data = await get_params(client)
@@ -57,6 +58,7 @@ async def photo_upload(client: httpx.AsyncClient, base64_data: str):
             "respuesta": text,
         }
 
+
 ####
 async def posting_post(client: httpx.AsyncClient, photo_id: str, title: str):
     data = await get_params(client)
@@ -82,7 +84,7 @@ async def posting_post(client: httpx.AsyncClient, photo_id: str, title: str):
                     "tag_expansion_state": "UNSPECIFIED",
                 }
             },
-            "message": {"ranges": [], "text": {json.dumps(title)}},
+            "message": {"ranges": [], "text": title},
             "with_tags_ids": None,
             "inline_activities": [],
             "text_format_preset_id": "0",
@@ -209,6 +211,7 @@ async def feedback_start_typing(client: httpx.AsyncClient, feedback_id: str):
 
     await client.post("https://www.facebook.com/api/graphql/", data=payload)
 
+
 ####
 async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: str):
     post_id = base64.b64decode(feedback_id).decode("utf-8").replace("feedback:", "")
@@ -216,15 +219,15 @@ async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: 
     session_id = generar_session_id()
     timestamp = int(time.time() * 1000)
     # Procesamos el texto que viene de JSON.stringify()
-    ##try:
-    ##    # Primero intentamos decodificar el JSON
-    ##    comment = json.loads(comment)
-    ##    # Si el texto tiene escapes, los removemos
-    ##    if isinstance(comment, str):
-    ##        comment = comment.encode("utf-8").decode("unicode_escape")
-    ##except:
-    ##    # Si falla el JSON, asumimos que es texto plano
-    ##    pass
+    #try:
+    #    # Primero intentamos decodificar el JSON
+    #    comment = json.loads(comment)
+    #    # Si el texto tiene escapes, los removemos
+    #    if isinstance(comment, str):
+    #        comment = comment.encode("utf-8").decode("unicode_escape")
+    #except:
+    #    # Si falla el JSON, asumimos que es texto plano
+    #    pass
 
     #comment = comment.replace("\n", "\\n")
     payload = {
@@ -269,6 +272,6 @@ async def posting_comment(client: httpx.AsyncClient, feedback_id: str, comment: 
     else:
         return {
             "status_code": 400,
-            "mensaje": "Error al publicar el comentario. Respuesta:"+ response.text,
+            "mensaje": "Error al publicar el comentario. Respuesta:",
             "respuesta": response.text,
         }
