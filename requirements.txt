@@ -1,0 +1,6 @@
+# API Facebook (login, sesión, páginas, publicar)
+fastapi
+uvicorn
+httpx
+httpx[http2]
+playwright
